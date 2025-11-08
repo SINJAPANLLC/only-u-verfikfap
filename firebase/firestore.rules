@@ -1,0 +1,111 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function roleSet() {
+      return isSignedIn() && request.auth.token.roles is list ? request.auth.token.roles : [];
+    }
+
+    function hasRole(role) {
+      return role in roleSet();
+    }
+
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    match /users/{uid} {
+      allow read: if isSignedIn() && (isSelf(uid) || hasRole('admin'));
+      allow create: if isSignedIn() && isSelf(uid);
+      allow update: if isSignedIn() && (isSelf(uid) || hasRole('admin'));
+      allow delete: if hasRole('admin');
+    }
+
+    match /creators/{creatorId} {
+      allow read: if isSignedIn();
+      allow create, update: if hasRole('admin') || (hasRole('creator') && request.auth.uid == request.resource.data.ownerUid);
+      allow delete: if hasRole('admin');
+    }
+
+    match /agencies/{agencyId} {
+      allow read: if isSignedIn() && (hasRole('admin') || hasRole('agency'));
+      allow create, update: if hasRole('admin') || (hasRole('agency') && request.auth.uid == request.resource.data.ownerUid);
+      allow delete: if hasRole('admin');
+    }
+
+    match /contents/{contentId} {
+      allow read: if true;
+      allow create, update: if hasRole('admin') || (hasRole('creator') && request.auth.uid == request.resource.data.creatorUid);
+      allow delete: if hasRole('admin');
+    }
+
+    match /purchases/{purchaseId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.buyerUid ||
+        request.auth.uid == resource.data.creatorUid ||
+        hasRole('admin')
+      );
+      allow create: if hasRole('admin');
+      allow update: if hasRole('admin');
+      allow delete: if false;
+    }
+
+    match /liveSessions/{sessionId} {
+      allow read: if isSignedIn();
+      allow create, update: if hasRole('admin') || hasRole('creator');
+      allow delete: if hasRole('admin');
+    }
+
+    match /subscriptions/{subscriptionId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.customerUid || hasRole('admin')
+      );
+      allow create, update: if hasRole('admin');
+      allow delete: if hasRole('admin');
+    }
+
+    match /matches/{matchId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.fanUid ||
+        request.auth.uid == resource.data.creatorUid ||
+        hasRole('admin')
+      );
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.fanUid;
+      allow update: if isSignedIn() && (
+        request.auth.uid == resource.data.fanUid ||
+        request.auth.uid == resource.data.creatorUid ||
+        hasRole('admin')
+      );
+      allow delete: if hasRole('admin');
+    }
+
+    match /matchRequests/{requestId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.fanUid || hasRole('admin')
+      );
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.fanUid;
+      allow update: if hasRole('admin');
+      allow delete: if hasRole('admin');
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && request.auth.uid == resource.data.targetUid;
+      allow create: if hasRole('admin');
+      allow update: if isSignedIn() && request.auth.uid == resource.data.targetUid;
+      allow delete: if hasRole('admin');
+    }
+
+    match /roleRequests/{requestId} {
+      allow create: if isSignedIn();
+      allow read: if hasRole('admin');
+      allow update, delete: if hasRole('admin');
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
