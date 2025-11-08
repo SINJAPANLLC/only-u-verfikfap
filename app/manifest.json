@@ -1,0 +1,21 @@
+{
+  "name": "ONLY-U",
+  "short_name": "ONLY-U",
+  "description": "Fan × Creator × Live × Matching プラットフォーム",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ec008c",
+  "theme_color": "#ec008c",
+  "icons": [
+    {
+      "src": "/icons/logo-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
